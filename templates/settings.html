@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings</title>
+    <style>
+        /* Existing CSS styles */
+
+        .progress {
+            margin-bottom: 10px;
+        }
+
+        .message {
+            margin-top: 20px;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/simple.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <ul>
+            <li><a href="/settings">Settings</a></li>
+            <li><a href="/videos">Videos</a></li>
+        </ul>
+    </div>
+    <div class="content">
+    <h1>Settings</h1>
+    <button id="scrape-button" onclick="sendRequest()">Scrape</button>
+
+    <div class="progress">
+        <span id="progress-text"></span>
+        <progress id="progress" class="progress-bar" max="100" value="{{ progress }}"></progress>
+    </div>
+
+    <div class="message">
+        <span id="message-text"></span>
+    </div>
+    </div>
+    <script>
+        function sendProgressRequest() {
+            fetch('/progress')
+                .catch(function(error) {
+                    console.log('Error:', error);
+                });
+        }
+    
+        function sendScrapeRequest() {
+            fetch('/scrape')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    let progressElement = document.getElementById('progress');
+                    if (data.progress) {
+                        progressElement.value = data.progress;
+                    }
+                    if (data.finished) {
+                        progressElement.value = data.finished;
+                        clearInterval(progressInterval);
+                        alert('Process completed!');
+                    }
+                })
+                .catch(function(error) {
+                    console.log('Error:', error);
+                });
+        }
+    
+        // Send the progress request on button click
+        document.getElementById('scrape-button').addEventListener('click', function() {
+            sendProgressRequest();
+            // Send the scrape request every 5 seconds
+            progressInterval = setInterval(sendScrapeRequest, 1000);
+        });
+    </script> 
+</body>
+</html>

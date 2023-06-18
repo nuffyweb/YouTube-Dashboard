@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/simple.css') }}">
+    <title>Videos</title>
+    <script>
+        function sortTable(columnIndex) {
+            var table, rows, switching, i, x, y, shouldSwitch;
+            table = document.getElementById("videos-table");
+            switching = true;
+
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[columnIndex];
+                    y = rows[i + 1].getElementsByTagName("TD")[columnIndex];
+
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="sidebar">
+        <ul>
+            <li><a href="/settings">Settings</a></li>
+            <li><a href="/videos">Videos</a></li>
+        </ul>
+    </div>
+    <div class="content">
+    <h1>Videos</h1>
+    <form action="/videos" method="GET">
+        <input type="text" name="search" placeholder="Search by title" value="{{ search_query }}">
+        <button type="submit">Search</button>
+    </form>
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="/videos?page={{ page - 1 }}&search={{ search_query }}">Previous</a>
+        {% endif %}
+        
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+                <span class="current-page">{{ p }}</span>
+            {% else %}
+                <a href="/videos?page={{ p }}&search={{ search_query }}">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page < total_pages %}
+            <a href="/videos?page={{ page + 1 }}&search={{ search_query }}">Next</a>
+        {% endif %}
+    </div>
+    <table id="videos-table">
+        <thead>
+        <tr>
+            <th onclick="sortTable(3)">Time</th>
+            <th onclick="sortTable(1)">Image</th>
+            <th onclick="sortTable(2)">Title</th>
+            <th onclick="sortTable(4)">Channel</th>
+            <th>Tags</th>
+            <th>Add Tags</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for video in videos %}
+        <tr>
+            <td>{{ video['time'] }}</td>
+            <td><img src="{{ video['thumbnail_url'] }}"> </td>
+            <td><a href="https://www.youtube.com/watch?v={{ video['video_id'] }}">{{ video['title'] }}</a></td>
+            <td>{{ video['channel_title'] }}</td>
+            <td>
+                {% for tag in video['tags'] %}
+                    <span>{{ tag }}</span>
+                {% endfor %}
+            </td>
+            <td>
+                <form action="/videos/{{ video['id'] }}/add_tags" method="post">
+                    <input type="text" name="tags" id="tags-{{ video['id'] }}" placeholder="Enter tags" required>
+                    <div class="tooltip">
+                        <span class="tooltiptext" id="tooltip-{{ video['id'] }}"></span>
+                    </div>
+                    <button type="submit">Add Tags</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <script>
+        // AJAX request for autocomplete dropdown and tooltip
+        function autocompleteTags(inputId, tooltipId) {
+            const input = document.getElementById(inputId);
+            const tooltip = document.getElementById(tooltipId);
+
+            input.addEventListener('input', function() {
+                const query = input.value;
+                if (query.length === 0) {
+                    tooltip.innerHTML = '';
+                    return;
+                }
+
+                fetch('/tags?query=' + query)
+                    .then(response => response.json())
+                    .then(tags => {
+                        const tooltipContent = tags.map(tag => `<span>${tag}</span>`).join('');
+                        tooltip.innerHTML = tooltipContent;
+                    });
+            });
+        }
+
+        // Call the autocomplete function for each video
+        {% for video in videos %}
+            autocompleteTags("tags-{{ video['id'] }}", "tooltip-{{ video['id'] }}");
+        {% endfor %}
+    </script>
+</body>
+</html>
